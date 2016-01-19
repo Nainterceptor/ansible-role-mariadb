@@ -1,0 +1,50 @@
+---
+# tasks file for Nainterceptor.mariadb
+
+- name: "Copy mariadb repo"
+  copy: src=../files/MariaDB.repo dest=/etc/yum.repos.d/MariaDB.repo
+
+- name: "Install required packages"
+  yum: name={{ item }} state=present
+  with_items:
+      - gcc
+      - python-devel
+      - libffi-devel
+      - openssl-devel
+      - python-pip
+      - MariaDB-server
+      - MariaDB-devel
+      - MariaDB-client
+  notify:
+    - Start Mariadb
+    - Enable MariaDB
+
+- name: "Install PIP security packages"
+  pip: name=requests[security]
+
+- name: "Install Mysql python driver"
+  pip: name=MySQL-python
+
+- name: "Secure MariaDB : Remove test db"
+  mysql_db:
+    name: test
+    state: absent
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  register: securesMariaDB
+
+- name: "Secure MariaDB : Change root password"
+  command: mysql -e "UPDATE mysql.user SET Password = PASSWORD('{{ mysql_root_password }}') WHERE User = 'root'"
+  when: securesMariaDB.changed
+
+- name: "Secure MariaDB : Remove non local root"
+  command: mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+  when: securesMariaDB.changed
+
+- name: "Secure MariaDB : Remove empty users"
+  command: mysql -e "DELETE FROM mysql.user WHERE User=''"
+  when: securesMariaDB.changed
+
+- name: "Secure MariaDB : Flush privileges"
+  command: mysql -e "FLUSH PRIVILEGES"
+  when: securesMariaDB.changed

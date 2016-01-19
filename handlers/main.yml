@@ -1,0 +1,20 @@
+---
+# handlers file for Nainterceptor.mariadb
+- name: "Restart MariaDB"
+  service:
+    name: mysql
+    state: restarted
+  when: ansible_distribution == 'CentOS'
+
+- name: "Start MariaDB"
+  service:
+    name: mysql
+    state: started
+  when: ansible_distribution == 'CentOS'
+
+- name: "Enable MariaDB"
+  service:
+    name: mysql
+    state: started
+    enabled: yes
+  when: ansible_distribution == 'CentOS'
